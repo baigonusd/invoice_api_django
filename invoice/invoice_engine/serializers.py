@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Contract, Invoice
 from rest_framework.serializers import ValidationError
+import requests
 
 
 class ContractSerializer(serializers.ModelSerializer):
@@ -28,3 +29,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
         else:
             raise ValidationError(
                 {"Error": "You don't have a permission for this contract"})
+
+
+# class EmailSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Invoice
+#         fields = ('user', 'title', 'contract',
+#                   'product', 'price', 'number', 'sum')
+        # fields = "__all__"
