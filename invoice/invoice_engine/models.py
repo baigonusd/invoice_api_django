@@ -1,7 +1,9 @@
 from django.utils.text import slugify
 from time import time
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
+
+User = settings.AUTH_USER_MODEL
 
 
 def gen_slug(s):
@@ -31,8 +33,10 @@ class Invoice(models.Model):
     product = models.CharField(max_length=50)
     price = models.IntegerField()
     number = models.IntegerField()
+    sum = models.IntegerField()
 
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = gen_slug(self.title)
+            self.sum = self.price * self.number
         super().save(*args, **kwargs)

@@ -5,6 +5,7 @@ from .views import *
 
 router = routers.SimpleRouter()
 router.register(r'contract', ContractViewSet)
+router.register(r'invoice', InvoiceViewSet)
 
 
 urlpatterns = [
