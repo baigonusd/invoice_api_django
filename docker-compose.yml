@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  web:
+    build: ./invoice
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./invoice:/home/invoice
+    env_file:
+      - .env
+    command: >
+      sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - db
+      - celery
+      
+
+  db:
+    image: postgres:12.8-buster
+    env_file:
+      - .env
+    ports:
+      - 5432:5432
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4:5.1
+    container_name: pgadmin4_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${EMAIL_PG}
+      PGADMIN_DEFAULT_PASSWORD: ${PASSWORD_PG}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celery:
+    restart: always
+    build: ./invoice
+    env_file:
+      - .env
+    volumes:
+      - ./invoice:/home/invoice
+    command: > 
+      sh -c "celery -A invoice worker -l info"
+    depends_on:
+    - redis
+
+  flower:
+    image: mher/flower
+    env_file:
+      - .env
+    ports:
+      - 5555:5555
+    depends_on:
+      - redis

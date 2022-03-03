@@ -1,3 +1,4 @@
 .env
 venv/
 report.xlsx
+pgdata/
