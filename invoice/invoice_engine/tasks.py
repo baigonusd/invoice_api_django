@@ -2,8 +2,9 @@ from __future__ import absolute_import, unicode_literals
 from email.message import EmailMessage
 import os
 import smtplib
-
+from django.core.mail import send_mail
 from celery import shared_task
+from django.conf import settings
 
 
 @shared_task()
@@ -28,3 +29,10 @@ def email(mail):
         print('Message sended')
         smtp.send_message(msg)
     return {"Message": "Email sended"}
+
+
+@shared_task()
+def send_verification_email(data):
+    send_mail(subject=data['email_subject'], message=data['email_body'],
+              from_email=settings.EMAIL_HOST_USER, recipient_list=[data['to_email']])
+    return {"Message": "Verification email sended"}

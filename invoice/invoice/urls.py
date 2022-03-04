@@ -21,9 +21,11 @@ from .views import redirect_invoice
 urlpatterns = [
     path('', redirect_invoice),
     path('admin/', admin.site.urls),
-    path('auth/', include('djoser.urls')),
-    path('auth/', include('djoser.urls.authtoken')),
-    path('auth/', include('djoser.urls.jwt')),
+    # path('auth/', include('djoser.urls')),
+    # path('auth/', include('djoser.urls.authtoken')),
+    # path('auth/', include('djoser.urls.jwt')),
     path('api/v1/', include('invoice_engine.urls')),
+    path('api/v1/user/', include('core.urls')),
+
 
 ]
