@@ -2,7 +2,7 @@ from rest_framework import generics, viewsets
 from django.shortcuts import render
 from django.http import HttpResponse
 import json
-from invoice_engine.utils import save_file, save_report
+from invoice_engine.utils import save_file, save_report, save_save
 from .models import Invoice, Contract, Product, InvoiceItem
 from .serializers import ContractSerializer, InvoiceSerializer, ProductSerializer, InvoiceItemSerializer, ListOfInvoicesSerializer
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -78,9 +78,11 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
     def returning_response(self, request, *args, **kwargs):
         if self.request.user.is_authenticated:
             users = User.objects.all()
+            # json: [{user1: [{data1},...]}, {user2}: [{data2},...] ]
             b = [{users[i].email: list(InvoiceItem.objects.values('product__title', 'price').filter(
                 invoice__user__id=i+1, invoice__date__gte=f'2022-0{request.data["month"]}-01', invoice__date__lt=f'2022-0{int(request.data["month"])+1}-01').annotate(total_qty=Sum('qty')).annotate(total_amount=Sum('amount')))} for i in range(len(users))]
-            save_report(b)
+            # save_report(b)
+            save_save(b)
             email.delay(request.user.email)
             return Response(b)
         else:
