@@ -1,9 +1,10 @@
 from rest_framework import generics, viewsets
 from django.shortcuts import render
+from django.http import HttpResponse
 import json
-from invoice_engine.utils import save_file
+from invoice_engine.utils import save_file, save_report
 from .models import Invoice, Contract, Product, InvoiceItem
-from .serializers import ContractSerializer, InvoiceSerializer, ProductSerializer, InvoiceItemSerializer
+from .serializers import ContractSerializer, InvoiceSerializer, ProductSerializer, InvoiceItemSerializer, ListOfInvoicesSerializer
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .permissions import *
 from django.conf import settings
@@ -13,15 +14,13 @@ from django.conf import settings
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .tasks import email
+from django.db.models import Sum
+from core.models import User
 
 
 def main_page(request):
     return render(request, 'invoice_engine/index.html')
 
-
-# class ContractAPIView(generics.ListCreateAPIView):
-#     queryset = Contract.objects.all()
-#     serializer_class = ContractSerializer
 
 class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
@@ -75,9 +74,31 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
         email.delay(request.user.email)
         return Response()
 
-    # class XlsxSendToEmailViewSet(XLSXFileMixin, ReadOnlyModelViewSet):
-    #     queryset = Invoice.objects.all()
-    #     serializer_class = EmailSerializer
-    #     renderer_classes = (XLSXRenderer,)
-    #     filename = 'othcet.xlsx'
-    # permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
+    @action(detail=False, methods=['get'])
+    def returning_response(self, request, *args, **kwargs):
+        if self.request.user.is_authenticated:
+            users = User.objects.all()
+            b = [{users[i].email: list(InvoiceItem.objects.values('product__title', 'price').filter(
+                invoice__user__id=i+1, invoice__date__gte=f'2022-0{request.data["month"]}-01', invoice__date__lt=f'2022-0{int(request.data["month"])+1}-01').annotate(total_qty=Sum('qty')).annotate(total_amount=Sum('amount')))} for i in range(len(users))]
+            save_report(b)
+            email.delay(request.user.email)
+            return Response(b)
+        else:
+            return Response({"ERROR": "You're not authorized"})
+
+# month_lt = f'2022-0{int(request.data["month"])+1}-01'
+# month_gte = f'2022-0{request.data["month"]}-01'
+
+# class CreateXlsxViewSet(viewsets.ModelViewSet):
+#     serializer_class = InvoiceItemSerializer
+#     queryset = InvoiceItem.objects.all()
+
+
+# class ListOf
+
+# class XlsxSendToEmailViewSet(XLSXFileMixin, ReadOnlyModelViewSet):
+#     queryset = Invoice.objects.all()
+#     serializer_class = EmailSerializer
+#     renderer_classes = (XLSXRenderer,)
+#     filename = 'othcet.xlsx'
+# permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)

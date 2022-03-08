@@ -13,6 +13,12 @@ class ContractSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ('title', 'price')
+
+
 class InvoiceSerializer(serializers.ModelSerializer):
     user = serializers.CharField(default=serializers.CurrentUserDefault())
 
@@ -29,12 +35,6 @@ class InvoiceSerializer(serializers.ModelSerializer):
                 {"Error": "You don't have a permission for this contract"})
 
         return Invoice.objects.create(**validated_data)
-
-
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ('title', 'price')
 
 
 class InvoiceItemSerializer(serializers.ModelSerializer):
@@ -56,6 +56,14 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
         else:
             raise ValidationError(
                 {"Error": "You don't have a permission for this invoice"})
+
+
+class ListOfInvoicesSerializer(serializers.ModelSerializer):
+    invoice_items = InvoiceItemSerializer(many=True)
+
+    class Meta:
+        model = Invoice
+        fields = ('user', 'number', 'contract', 'date')
 
     # contracts = Contract.objects.filter(user=user, pk=validated_data["contract"].pk).exists()
     # if validated_data["contract"] in contracts:
