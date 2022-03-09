@@ -67,6 +67,7 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
         else:
             return None
 
+    # body = invoice.id (exp: 1)
     @action(detail=False, methods=['get'])
     def get_mail_xlsx(self, request, *args, **kwargs):
         queryset = InvoiceItem.objects.filter(invoice=request.data["invoice"])
@@ -74,9 +75,10 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
         email.delay(request.user.email)
         return Response()
 
+    # authorized as admin, mounth (exp: 3)
     @action(detail=False, methods=['get'])
     def returning_response(self, request, *args, **kwargs):
-        if self.request.user.is_authenticated:
+        if self.request.user.is_admin:
             users = User.objects.all()
             # json: [{user1: [{data1},...]}, {user2}: [{data2},...] ]
             b = [{users[i].email: list(InvoiceItem.objects.values('product__title', 'price').filter(
