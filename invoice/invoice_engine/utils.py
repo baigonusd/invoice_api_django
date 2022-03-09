@@ -80,26 +80,37 @@ def save_save(items):
     sheet['C1'] = 'QTY'
     sheet['D1'] = 'Price'
     sheet['E1'] = 'Amount'
+    sheet['F1'] = 'Sum'
 
     row = 2
-    users_value = []
+    # users_value = []
     count = 0
+    sum = []
+
+    for i in range(len(items)):
+        sum_items = 0
+        for data in items[i][list(items[i])[0]]:
+            sum_items += data['total_amount']
+        sum.append(sum_items)
+
     # for data in items
     for i in range(0, len(items)):
-        users_value.append(list(items[i]))
-        print('------------------')
-        print(users_value[i][0])
-        for data in items[i][users_value[i][0]]:
+        # users_value.append(list(items[i]))
+
+        for data in items[i][list(items[i])[0]]:
 
             if count == i:
-                sheet[row][0].value = users_value[i][0]
+                sheet[row][0].value = list(items[i])[0]
+                sheet[row][5].value = sum[i]
                 count += 1
             else:
                 sheet[row][0].value = ' '
+                sheet[row][5].value = ' '
+
             sheet[row][1].value = data['product__title']
             sheet[row][2].value = data['total_qty']
             sheet[row][3].value = data['price']
             sheet[row][4].value = data['total_amount']
             row += 1
 
-    book.save('save_book.xlsx')
+    book.save('report.xlsx')
