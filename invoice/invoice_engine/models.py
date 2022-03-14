@@ -13,6 +13,7 @@ class Contract(models.Model):
 
 class Product(models.Model):
     title = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
 
 
 class Invoice(models.Model):
@@ -37,7 +38,7 @@ class InvoiceItem(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, blank=False)
     qty = models.DecimalField(max_digits=6, decimal_places=2)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    # price = models.DecimalField(max_digits=10, decimal_places=2)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
 
     # def get_sum(self):

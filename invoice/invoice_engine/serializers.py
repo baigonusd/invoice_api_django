@@ -40,12 +40,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
 class InvoiceItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvoiceItem
-        fields = ('invoice', 'product', 'qty', 'price')
+        fields = ('invoice', 'product', 'qty')
 
     def create(self, validated_data):
-        validated_data["amount"] = validated_data["qty"] * \
-            validated_data["price"]
-
+        product = validated_data["product"]
+        validated_data["amount"] = validated_data["qty"] * product.price
         user = None
         request = self.context.get("request")
         if request and hasattr(request, "user"):

@@ -1,75 +1,40 @@
-import xlsxwriter
-import pandas as pd
 import openpyxl
+import datetime
+
+from core.models import User
+from invoice_engine.models import InvoiceItem
+from django.db.models import Sum
 
 
-def save_file(items):
-    df = pd.DataFrame()
-    invoices = []
-    products = []
-    qtys = []
-    prices = []
-    amounts = []
+def save_save(self, request, *args, **kwargs):
+    users = User.objects.all()
+    month_value = int(request.query_params.get('month'))
+    items = []
+    if month_value is None:
+        return {"ERROR": "Month can't be None"}
 
-    for item in items:
-        invoices.append(item.invoice)
-        products.append(item.product)
-        qtys.append(item.qty)
-        prices.append(item.price)
-        amounts.append(item.amount)
+    date_gte = datetime.date(year=2022, month=month_value, day=1)
+    if 0 < month_value < 12:
+        date_lt = datetime.date(year=2022, month=month_value+1, day=1)
+    elif month_value == 12:
+        date_lt = datetime.date(year=2023, month=1, day=1)
+    else:
+        return {'ERROR': 'Month need to be between 1 and 12 inclusive'}
 
-    df["Invoices"] = invoices
-    df["Products"] = products
-    df["QTYs"] = qtys
-    df["Prices"] = prices
-    df["Amounts"] = amounts
+    for i in range(len(users)):
+        user_items = list(InvoiceItem.objects.values('product__title', 'product__price')
+                          .filter(invoice__user__id=i+1, invoice__date__gte=date_gte, invoice__date__lt=date_lt)
+                          .annotate(total_qty=Sum('qty'))
+                          .annotate(total_amount=Sum('amount'))
+                          )
+        if user_items:
+            items.append({users[i].email: user_items})
 
-    writer = pd.ExcelWriter(
-        "./report.xlsx", engine="xlsxwriter")
-    df.to_excel(writer, sheet_name="List1", index=False)
+    if not items:
+        raise Exception("NO DATA")
 
-    writer.sheets["List1"].set_column("A:A", 30)
-    writer.sheets["List1"].set_column("B:B", 30)
-    writer.sheets["List1"].set_column("C:C", 30)
-    writer.sheets["List1"].set_column("D:D", 30)
-    writer.sheets["List1"].set_column("D:D", 30)
-
-    writer.save()
-
-
-def save_report(items):
-    users = []
-    products = []
-    qtys = []
-    prices = []
-    amounts = []
-    users_value = []
-    for i in range(0, len(items)):
-        users_value.append(list(items[i]))
-
-        for data in items[i][users_value[i][0]]:
-            users.append(users_value[i][0])
-            products.append(data['product__title'])
-            qtys.append(data['total_qty'])
-            prices.append(data['price'])
-            amounts.append(data['total_amount'])
-
-    df = pd.DataFrame({'Users': users, 'Product': products, 'QTY': qtys,
-                       'Price': prices, 'Amount': amounts})
-    writer = pd.ExcelWriter(
-        "./report_of_users.xlsx", engine="xlsxwriter")
-    df.to_excel(writer, sheet_name="List1", index=False)
-
-    writer.sheets["List1"].set_column("A:A", 30)
-    writer.sheets["List1"].set_column("B:B", 30)
-    writer.sheets["List1"].set_column("C:C", 30)
-    writer.sheets["List1"].set_column("D:D", 30)
-    writer.sheets["List1"].set_column("D:D", 30)
-
-    writer.save()
-
-
-def save_save(items):
+    # items = [{users[i].email: list(InvoiceItem.objects.values('product__title', 'product__price').filter(
+    #     invoice__user__id=i+1, invoice__date__gte=f'2022-0{month}-01', invoice__date__lt=f'2022-0{month+1}-01').annotate(total_qty=Sum('qty')).annotate(total_amount=Sum('amount')))} for i in range(len(users))]
 
     book = openpyxl.Workbook()
 
@@ -109,8 +74,10 @@ def save_save(items):
 
             sheet[row][1].value = data['product__title']
             sheet[row][2].value = data['total_qty']
-            sheet[row][3].value = data['price']
+            sheet[row][3].value = data['product__price']
             sheet[row][4].value = data['total_amount']
             row += 1
 
     book.save('report.xlsx')
+
+    return items
