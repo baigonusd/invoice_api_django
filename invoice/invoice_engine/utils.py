@@ -2,33 +2,18 @@ import openpyxl
 import datetime
 
 from core.models import User
-from invoice_engine.models import InvoiceItem
+from invoice_engine.serializers import InvoiceItemSerializer
+from invoice_engine.models import Invoice, InvoiceItem
 from django.db.models import Sum
 
 
-def save_save(self, request, *args, **kwargs):
-    users = User.objects.all()
-    month_value = int(request.query_params.get('month'))
+def create_xlsx(date_f, date_l):
     items = []
-    if month_value is None:
-        return {"ERROR": "Month can't be None"}
 
-    date_gte = datetime.date(year=2022, month=month_value, day=1)
-    if 0 < month_value < 12:
-        date_lt = datetime.date(year=2022, month=month_value+1, day=1)
-    elif month_value == 12:
-        date_lt = datetime.date(year=2023, month=1, day=1)
-    else:
-        return {'ERROR': 'Month need to be between 1 and 12 inclusive'}
-
-    for i in range(len(users)):
-        user_items = list(InvoiceItem.objects.values('product__title', 'product__price')
-                          .filter(invoice__user__id=i+1, invoice__date__gte=date_gte, invoice__date__lt=date_lt)
-                          .annotate(total_qty=Sum('qty'))
-                          .annotate(total_amount=Sum('amount'))
-                          )
-        if user_items:
-            items.append({users[i].email: user_items})
+    for user in User.objects.all():
+        a = user.invoices.filter(user=user, date__gte=date_f, date__lte=date_l).values(
+            'item__product__title', 'item__product__price').annotate(total_qty=Sum('item__qty'), total_amount=Sum('item__amount'))
+        items.append({user.email: a})
 
     if not items:
         raise Exception("NO DATA")
@@ -72,9 +57,9 @@ def save_save(self, request, *args, **kwargs):
                 sheet[row][0].value = ' '
                 sheet[row][5].value = ' '
 
-            sheet[row][1].value = data['product__title']
+            sheet[row][1].value = data['item__product__title']
             sheet[row][2].value = data['total_qty']
-            sheet[row][3].value = data['product__price']
+            sheet[row][3].value = data['item__product__price']
             sheet[row][4].value = data['total_amount']
             row += 1
 

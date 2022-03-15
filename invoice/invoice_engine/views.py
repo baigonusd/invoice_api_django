@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from core.models import User
-from invoice_engine.utils import save_save
+from invoice_engine.utils import create_xlsx
 from .models import Invoice, Contract, Product, InvoiceItem
 from .serializers import ContractSerializer, InvoiceSerializer, ProductSerializer, InvoiceItemSerializer, ListOfInvoicesSerializer
 from .permissions import *
@@ -47,6 +47,21 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         else:
             return None
 
+    @action(detail=False, methods=['get'])
+    def report_send(self, request, *args, **kwargs):
+        if self.request.user.is_admin:
+            date_f = request.GET.get('date_f')
+            date_l = request.GET.get('date_l')
+
+            try:
+                b = create_xlsx(date_f, date_l)
+            except Exception as e:
+                return Response({"ERROR": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            email.delay(request.user.email)
+            return Response(b)
+        else:
+            return Response({"ERROR": "You're not admin"}, status=status.HTTP_403_FORBIDDEN)
     # @action(detail=False, methods=['get'])
     # def get_mail_xslx(self, request, *args, **kwargs):
     #     queryset = Invoice.objects.filter(user=request.user)
@@ -73,18 +88,7 @@ class InvoiceItemViewSet(viewsets.ModelViewSet):
     #     return Response()
 
     # authorized as admin, mounth (exp: 3)
-    @action(detail=False, methods=['get'])
-    def returning_response(self, request, *args, **kwargs):
-        if self.request.user.is_admin:
-            try:
-                b = save_save(self, request, *args, **kwargs)
-            except Exception as e:
-                return Response({"ERROR": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            email.delay(request.user.email)
-            return Response(b)
-        else:
-            return Response({"ERROR": "You're not admin"}, status=status.HTTP_403_FORBIDDEN)
 
 # month_lt = f'2022-0{int(request.data["month"])+1}-01'
 # month_gte = f'2022-0{request.data["month"]}-01'
